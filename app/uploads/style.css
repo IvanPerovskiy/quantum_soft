@@ -1,0 +1,46 @@
+.github.ribbon {
+	position: fixed;
+	display: block;
+	top: 40px;
+	right: 0;
+	border: 0;
+	z-index: 1001;
+}
+
+select {
+	white-space: pre;
+}
+
+.prettyprint {
+	padding: 10px!important;
+}
+
+#wrap {
+	padding-top: 70px;
+}
+
+#home h1 {
+	margin-bottom: 30px;
+}
+#demo,
+#examples,
+#support,
+#download {
+	padding-top: 40px;
+}
+textarea {
+	width: 100%;
+	resize: none;
+}
+
+/* Ставим кнопку по центру */
+
+.content {
+	text-align: center;
+}
+
+
+
+
+
+

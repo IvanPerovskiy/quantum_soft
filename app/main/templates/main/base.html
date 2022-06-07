@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/x-icon" href="https://github.com/favicon.ico" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.4/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="http://127.0.0.1/uploads/style.css" />
+</head>
+<body>
+    <div id="wrap" class="container">
+        <div class="row">
+            {% block content %}
+            {%csrf_token%}
+            <div class="col-xs-5">
+                <h4 ><code>Tree</code></h4>
+                <select name="from[]" id="tree" class="form-control" size="8" multiple="multiple">
+                {% for item in trees %}
+                    <option style="color:{{ item.color}}" value="{{item.id}}">{{ item.value }}</option>
+                {% endfor %}
+                </select>
+            </div>
+            <div class="col-xs-2">
+                <h4 ><code></code></h4>
+                <button type="button" id="addItem" name="addItem" class="btn btn-block go-btn"><i class="glyphicon glyphicon-chevron-right"></i></button>
+                <button type="button" class="btn btn-block" data-toggle="modal" data-target="#exampleModal">Edit</button>
+                <button type="button" id="deleteItem" class="btn btn-block">Delete</button>
+                <button type="button" id="saveAll" class="btn btn-block">Save</button>
+                <button type="button" id="clearCache" class="btn btn-block">Clear cache</button>
+                <button type="button" id="resetAll" class="btn btn-block">Reset</button>
+            </div>
+            <div class="col-xs-5">
+                <h4 ><code>Сache</code></h4>
+                <select name="from[]" id="cache" class="form-control" size="8" multiple="multiple">
+                {% for item in cache %}
+                    <option style="color:{{ item.color }}" value="{{item.id}}">{{ item.value }}</option>
+                {% endfor %}
+                </select>
+            </div>
+
+        <!-- Modal -->
+            <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Edit value</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">×</span>
+                    </button>
+                  </div>
+                  <div class="modal-body">
+                    <form>
+                      <div class="form-group">
+                        <label for="newValue">New value</label>
+                        <input type="text" required class="form-control" id="newValue">
+                      </div>
+                      <button type="submit" id=editValue class="btn btn-primary w-100">Save</button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endblock %}
+        </div>
+    </div>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.4/js/bootstrap.min.js"></script>
+<script>
+    $('#resetAll').click(function() {
+        $.ajax({
+      type: "POST",
+      url: "http://127.0.0.1/api/reset",
+      success: function() {
+        window.location.reload();
+    }
+    });
+});
+</script>
+<script>
+    $('#clearCache').click(function() {
+        $.ajax({
+      type: "POST",
+      url: "http://127.0.0.1/api/clear",
+      success: function() {
+        window.location.reload();
+    }
+    });
+});
+</script>
+<script>
+    $('#deleteItem').click(function() {
+        $.ajax({
+      type: "DELETE",
+      url: "http://127.0.0.1/api/" + $('#cache').val(),
+      success: function(data) {
+      if (data === 'Элемент уже удален'){
+               alert(data);
+        }
+      else {
+        window.location.reload();
+        }
+    }
+    });
+});
+</script>
+<script>
+    $('#editValue').click(function(e) {
+    var $data = $("#newValue").val();
+    if ($('#cache').val() === null){
+        alert('Вы не выбрали элемент для редактирования')
+    }
+    else {
+        if ($data){
+            $.ajax({
+          type: "PUT",
+          url: "http://127.0.0.1/api/" + $('#cache').val(),
+          data: {value: $data},
+          success: function(data) {
+        if (data === 'Удаленный элемент запрещено редактировать'){
+               alert(data);
+        }
+      else {
+        window.location.reload();
+        }
+                }
+        });
+        };
+    };
+});
+</script>
+<script>
+    $('#addItem').click(function() {
+        $.ajax({
+      type: "POST",
+      url: "http://127.0.0.1/api/load",
+      data: {tree_id: $('#tree').val()[0]},
+      success: function() {
+        window.location.reload();
+    }
+    });
+});
+</script>
+<script>
+    $('#saveAll').click(function() {
+        $.ajax({
+      type: "POST",
+      url: "http://127.0.0.1/api/save",
+      success: function(data) {
+        window.location.reload();
+    }
+    });
+});
+</script>
+</body>
+</html>
