@@ -4,9 +4,6 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework.filters import OrderingFilter
-from django_filters.rest_framework import DjangoFilterBackend
-from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 
 from main.models import Cache, Tree
@@ -19,11 +16,15 @@ class CacheViewSet(viewsets.GenericViewSet):
     queryset = Cache.objects.all()
     serializer_class = CacheSerializer
     permission_classes = (AllowAny,)
-    filter_backends = [DjangoFilterBackend, OrderingFilter]
+
+    def get_serializer_class(self):
+        if self.action == 'update':
+            return CacheUpdateSerializer
+        return self.serializer_class
 
     def list(self, request, *args, **kwargs):
         """
-        Список всех элементов в кеше, сформированный в дерево
+        Список всех элементов в кэше
         """
         queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
@@ -31,7 +32,6 @@ class CacheViewSet(viewsets.GenericViewSet):
 
     @swagger_auto_schema(responses={
         200: SUCCESS_RESPONSE,
-        404: NOT_FOUND,
         400: BAD_REQUEST
     })
     @action(
@@ -97,13 +97,13 @@ class CacheViewSet(viewsets.GenericViewSet):
 
     @swagger_auto_schema(responses={
         200: SUCCESS_RESPONSE,
-        404: NOT_FOUND,
         400: BAD_REQUEST
     })
     @action(
         detail=False,
         methods=['post'],
         permission_classes=(AllowAny,),
+        serializer_class=None,
         url_path='save'
     )
     def save_changes(self, request):
@@ -115,24 +115,32 @@ class CacheViewSet(viewsets.GenericViewSet):
             item['tree_id']: {'value': item['value'], 'is_deleted': item['is_deleted']}
             for item in change_items.values('tree_id', 'value', 'is_deleted')
         }
-        tree_items = Tree.objects.filter(id__in=change_items.values_list('tree_id', flat=True))
-        with transaction.atomic():
-            for tree_item in tree_items:
-                tree_item.is_deleted = change_dict[tree_item.id]['is_deleted']
-                tree_item.value = change_dict[tree_item.id]['value']
-                tree_item.save()
-            change_items.update(is_sent=True)
-        return Response(status=status.HTTP_200_OK)
+        try:
+            tree_items = Tree.objects.filter(id__in=change_items.values_list('tree_id', flat=True))
+            with transaction.atomic():
+                for tree_item in tree_items:
+                    tree_item.is_deleted = change_dict[tree_item.id]['is_deleted']
+                    tree_item.value = change_dict[tree_item.id]['value']
+                    tree_item.save()
+                change_items.update(is_sent=True)
+            return Response(status=status.HTTP_200_OK)
+        except ConnectionError:
+            """
+            Эмулируем обрыв связи с деревом. Так как вся загрузка у нас происходит одной транзакцией,
+            данные не потеряются. И как только связь восстановится все данные передадутся. 
+            """
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
 
     @swagger_auto_schema(responses={
         200: SUCCESS_RESPONSE,
-        404: NOT_FOUND,
         400: BAD_REQUEST
     })
     @action(
         detail=False,
         methods=['post'],
         permission_classes=(AllowAny,),
+        serializer_class=None,
         url_path='clear'
     )
     def clear_cache(self, request):
@@ -145,18 +153,18 @@ class CacheViewSet(viewsets.GenericViewSet):
 
     @swagger_auto_schema(responses={
         200: SUCCESS_RESPONSE,
-        404: NOT_FOUND,
         400: BAD_REQUEST
     })
     @action(
         detail=False,
         methods=['post'],
         permission_classes=(AllowAny,),
+        serializer_class=None,
         url_path='reset'
     )
     def reset(self, request):
         """
-        Очистить кэш
+        Вернуть приложение в начальное состояние
         """
         Cache.objects.all().delete()
         Tree.objects.all().delete()

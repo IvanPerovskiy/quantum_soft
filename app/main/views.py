@@ -4,6 +4,9 @@ from main.models import Tree, Cache
 
 
 def index(request):
+	"""
+	Основная страница с формами
+	"""
 	trees = Tree.objects.order_by('id').values('value', 'depth', 'id', 'parent_id', 'is_deleted')
 	for item in trees:
 		item['value'] = '_'*item['depth'] + item['value']
