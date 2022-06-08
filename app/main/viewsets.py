@@ -129,6 +129,7 @@ class CacheViewSet(viewsets.GenericViewSet):
             tree_items = Tree.objects.filter(id__in=change_items.values_list('tree_id', flat=True))
             with transaction.atomic():
                 for tree_item in tree_items:
+                    tree_item.refresh_from_db()
                     tree_item.value = change_dict[tree_item.id]['value']
                     tree_item.save()
                     if not tree_item.is_deleted and change_dict[tree_item.id]['is_deleted']:
