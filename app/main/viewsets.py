@@ -53,12 +53,22 @@ class CacheViewSet(viewsets.GenericViewSet):
         cache_item = Cache.objects.filter(tree_id=serializer.validated_data['tree_id']).first()
         if cache_item:
             raise ValidationError('Этот элемент уже добавлен. Сохраните изменения')
-        Cache.objects.create(
+
+        cache_parent_item = Cache.objects.filter(tree_id=tree_item.parent_id).first()
+        if cache_parent_item and cache_parent_item.is_deleted:
+            is_deleted = True
+        else:
+            is_deleted = tree_item.is_deleted
+
+        new_cache_item = Cache.objects.create(
             tree_id=tree_item.id,
             value=tree_item.value,
             parent_id=tree_item.parent_id,
-            is_deleted=tree_item.is_deleted
+            is_deleted=is_deleted
         )
+        if is_deleted:
+            # При загрузке удаленного элемента удаляем всех потомков в кэше
+            new_cache_item.remove_children_from_cache()
         return Response(status=status.HTTP_200_OK)
 
     @swagger_auto_schema(responses={
@@ -119,9 +129,10 @@ class CacheViewSet(viewsets.GenericViewSet):
             tree_items = Tree.objects.filter(id__in=change_items.values_list('tree_id', flat=True))
             with transaction.atomic():
                 for tree_item in tree_items:
-                    tree_item.is_deleted = change_dict[tree_item.id]['is_deleted']
                     tree_item.value = change_dict[tree_item.id]['value']
                     tree_item.save()
+                    if not tree_item.is_deleted and change_dict[tree_item.id]['is_deleted']:
+                        tree_item.remove()
                 change_items.update(is_sent=True)
             return Response(status=status.HTTP_200_OK)
         except ConnectionError:

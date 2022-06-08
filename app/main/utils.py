@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.db import transaction
+from django.db import transaction, connection
 from django.contrib.auth import get_user_model
 
 from main.models import Tree
@@ -100,6 +100,27 @@ def create_tree(tree_json: list, parent_id=None, depth=0):
 			item_db = create_item_tree(item['value'], parent_id=parent_id, depth=depth)
 			create_tree(item['children'], parent_id=item_db.id, depth=depth+1)
 
+def get_child_ids(item_id):
+	# Выбирает идентификаторы всех потомков
+	query = f"""
+	with recursive r as (
+    select
+		id, parent_id, value
+		from main_tree
+		where parent_id = {item_id}
+  	union
+    select
+		st.id, st.parent_id, st.value
+		from main_tree as st
+		join r
+		on st.parent_id = r.id
+	)
+	select id from r;
+	"""
+	with connection.cursor() as cursor:
+		cursor.execute(query)
+		ids = cursor.fetchall()
+		return [id[0] for id in ids]
 
 def start_service():
 	"""
