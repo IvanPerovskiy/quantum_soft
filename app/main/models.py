@@ -24,13 +24,16 @@ class Tree(models.Model):
 
 
 class Cache(models.Model):
-    tree_id = models.BigIntegerField(db_index=True)
+    cache_parent = models.ForeignKey('Cache', on_delete=models.CASCADE, null=True, blank=True)
+
+    tree_id = models.BigIntegerField(null=True, blank=True, db_index=True)
     parent_id = models.BigIntegerField(null=True, blank=True, db_index=True)
     value = models.CharField(max_length=200)
 
     created = models.DateTimeField(auto_now_add=True)
     is_deleted = models.BooleanField(default=False)
     is_sent = models.BooleanField(default=False)
+    is_new = models.BooleanField(default=False)
 
     def set_value(self, value):
         self.value = value
@@ -45,10 +48,8 @@ class Cache(models.Model):
             self.remove_children_from_cache()
 
     def remove_children_from_cache(self):
-        from main.utils import get_child_ids
-        childs_ids = get_child_ids(self.tree_id)
-        cache_ids = Cache.objects.values_list('tree_id', flat=True)
+        from main.utils import get_child_cache_ids
+        childs_ids = get_child_cache_ids(self.id)
         Cache.objects.filter(
-            parent_id__in=cache_ids,
-            tree_id__in=childs_ids,
-        ).update(is_deleted=True)
+            id__in=childs_ids,
+        ).update(is_deleted=True, is_sent=False)

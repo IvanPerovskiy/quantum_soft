@@ -1,4 +1,4 @@
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from rest_framework.test import APIClient
 from main.utils import create_tree, TREE_JSON
 from main.models import Cache, Tree
@@ -13,8 +13,6 @@ class ApiTestCase(TestCase):
         response = self.client.post('/api/load', {
             'tree_id': item_id
         }, format='json')
-        if response.status_code == 400:
-            print(response.data)
         self.assertEqual(response.status_code, 200)
         response = self.client.get('/')
         self.assertEqual(tuple(list(response.context)[0].keys()), ('trees', 'cache'))
@@ -66,7 +64,5 @@ class ApiTestCase(TestCase):
         tree_node = Tree.objects.get(id=self.current_node.tree_id)
         self.assertEqual(tree_node.value, 'New_node')
         self.assertEqual(tree_node.is_deleted, True)
-
-
 
 

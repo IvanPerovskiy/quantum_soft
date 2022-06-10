@@ -20,6 +20,7 @@
             </div>
             <div class="col-xs-2">
                 <button type="button" id="addItem" name="addItem" class="btn btn-block go-btn"><i class="glyphicon glyphicon-chevron-right"></i></button>
+                <button type="button" class="btn btn-block" data-toggle="modal" data-target="#createModal"><i class="glyphicon glyphicon-plus"></i></button>
                 <button type="button" class="btn btn-block" data-toggle="modal" data-target="#exampleModal">Edit</button>
                 <button type="button" id="deleteItem" class="btn btn-block">Delete</button>
                 <button type="button" id="saveAll" class="btn btn-block">Save</button>
@@ -52,6 +53,27 @@
                         <input type="text" required class="form-control" id="newValue">
                       </div>
                       <button type="submit" id=editValue class="btn btn-primary w-100">Save</button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="createModalLabel">Edit value</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">×</span>
+                    </button>
+                  </div>
+                  <div class="modal-body">
+                    <form>
+                      <div class="form-group">
+                        <label for="newValue">New value</label>
+                        <input type="text" required class="form-control" id="newItem">
+                      </div>
+                      <button type="submit" id=createItem class="btn btn-primary w-100">Save</button>
                     </form>
                   </div>
                 </div>
@@ -140,6 +162,31 @@
     }
     });
     }
+});
+</script>
+<script>
+    $('#createItem').click(function(e) {
+    var $data = $("#newItem").val();
+    if ($('#cache').val() === null){
+        alert('Выберите родителя в кэше')
+    }
+    else {
+        if ($data){
+            $.ajax({
+          type: "POST",
+          url: "http://127.0.0.1/api/",
+          data: {value: $data, cache_parent_id: $('#cache').val()[0]},
+          success: function(data) {
+        if (data === 'Невозможно создать элемент с удаленным родителем'){
+               alert(data);
+        }
+      else {
+        window.location.reload();
+        }
+                }
+        });
+        };
+    };
 });
 </script>
 <script>
