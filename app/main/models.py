@@ -21,6 +21,7 @@ class Tree(models.Model):
         from main.utils import get_child_ids
         childs_ids = get_child_ids(self.id)
         Tree.objects.filter(id__in=childs_ids).update(is_deleted=True)
+        Cache.objects.filter(tree_id__in=childs_ids).update(is_deleted=True)
 
 
 class Cache(models.Model):

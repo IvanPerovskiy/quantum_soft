@@ -56,11 +56,13 @@ class CacheViewSet(viewsets.GenericViewSet):
         if cache_item:
             raise ValidationError('Этот элемент уже добавлен. Сохраните изменения')
 
-        cache_parent_item = Cache.objects.filter(tree_id=tree_item.parent_id).first()
-        if cache_parent_item and cache_parent_item.is_deleted:
-            is_deleted = True
+        is_deleted = tree_item.is_deleted
+        if not tree_item.parent_id:
+            cache_parent_item = None
         else:
-            is_deleted = tree_item.is_deleted
+            cache_parent_item = Cache.objects.filter(tree_id=tree_item.parent_id).first()
+            if cache_parent_item and cache_parent_item.is_deleted:
+                is_deleted = True
 
         new_cache_item = Cache.objects.create(
             tree_id=tree_item.id,
@@ -85,6 +87,9 @@ class CacheViewSet(viewsets.GenericViewSet):
         """
         Создание нового элемента в кэше
         """
+        cache_parent = Cache.objects.filter(id=request.data.get('cache_parent_id')).first()
+        if cache_parent and cache_parent.is_deleted:
+            return Response('Невозможно создать элемент с удаленным родителем', status=status.HTTP_200_OK)
         serializer = CacheCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -147,17 +152,6 @@ class CacheViewSet(viewsets.GenericViewSet):
         }
         new_items = change_items.filter(is_new=True).order_by('id')
         try:
-            # Обновляем старые элементы
-            tree_items = Tree.objects.filter(id__in=change_items.values_list('tree_id', flat=True))
-            with transaction.atomic():
-                for tree_item in tree_items:
-                    tree_item.refresh_from_db()
-                    tree_item.value = change_dict[tree_item.id]['value']
-                    tree_item.save()
-                    if not tree_item.is_deleted and change_dict[tree_item.id]['is_deleted']:
-                        tree_item.remove()
-                    change_dict.pop(tree_item.id)
-
             # Добавляем новые элементы
             for item in new_items:
                 if item.parent_id:
@@ -173,6 +167,16 @@ class CacheViewSet(viewsets.GenericViewSet):
                 )
                 item.tree_id = new_tree_item.id
                 item.save()
+            # Обновляем старые элементы
+            tree_items = Tree.objects.filter(id__in=change_items.filter(is_new=False).values_list('tree_id', flat=True))
+            with transaction.atomic():
+                for tree_item in tree_items:
+                    tree_item.refresh_from_db()
+                    tree_item.value = change_dict[tree_item.id]['value']
+                    tree_item.save()
+                    if not tree_item.is_deleted and change_dict[tree_item.id]['is_deleted']:
+                        tree_item.remove()
+                    change_dict.pop(tree_item.id)
 
             change_items.update(is_sent=True, is_new=False)
             return Response(status=status.HTTP_200_OK)

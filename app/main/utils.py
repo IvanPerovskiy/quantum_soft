@@ -197,7 +197,7 @@ def get_depth(item, levels):
 				'id': parent.id,
 				'cache_parent_id': parent.cache_parent_id
 			}
-			item['depth'] = get_depth(parent_item, levels)['depth']
+			item['depth'] = get_depth(parent_item, levels)['depth'] + 1
 	return item
 
 
